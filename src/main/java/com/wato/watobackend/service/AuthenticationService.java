@@ -139,7 +139,7 @@ public class AuthenticationService {
 
         Integer code = getAuthCode();
 
-        TokenDto token = jwtProvider.generateTokenByCode(optUser.get().getId(), email, code);
+        TokenDto token = jwtProvider.generateTokenByCode(Long.valueOf(0), email, code);
         emailService.send(email, "Wato 인증코드입니다.", code);
 
         return AuthCodeDto.builder().token(token.getToken()).expiration(token.getExpiration()).build();
