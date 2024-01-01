@@ -1,0 +1,89 @@
+server:
+  servlet:
+    context-path: /api
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          facebook:
+            clientId: 878700867073608
+            clientSecret: 046ed998a99b24bfd9848899e3927880
+            scope:
+              #              - email
+              - public_profile
+          google:
+            client-id: 830603159944-8fg2jgtt9g1uu7m5mf0bj0kndjsu10tl.apps.googleusercontent.com
+            client-secret: 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
+            scope:
+              - profile
+              - email
+          naver:
+            client-id: qkBEsRzp38HM6Gl0ythR
+            client-secret: _1YuqhV5Hd
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/{action}/oauth2/code/{registrationId}"
+            scope:
+              - email
+            client-name: Naver
+          kakao:
+            client-id: 79060ef507dce19e3b6659f0b143f623
+            client-secret: zNt53dBbKBF6NwMXRweI217HHHz8tzUy
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            scope:
+            #              - profile_nickname
+            #              - account_email
+            redirect-uri: "{baseUrl}/{action}/oauth2/code/{registrationId}"
+            client-name: Kakao
+        provider:
+          naver:
+            authorization-uri: https://nid.naver.com/oauth2.0/authorize
+            token-uri: https://nid.naver.com/oauth2.0/token
+            user-info-uri: https://openapi.naver.com/v1/nid/me
+            user-info-authentication-method: header
+            user-name-attribute: response
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-info-authentication-method: header
+            user-name-attribute: id
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: gpinkfighter
+    password: horl nsjc arkp xxll
+    properties:
+      mail:
+        smtp:
+          auth: true
+          timeout: 5000
+          starttls:
+            enable: true
+  datasource:
+    url: jdbc:mysql://49.247.156.91:3306/wato?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: root
+    password: rootpass
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  config:
+    activate:
+      on-profile: dev
+
+logging:
+  config: classpath:logback-dev.xml
+
+jwt.secret: 71f6d2dc07f7b338c8f0e14e7f80a6fccbe54a78421287bafbcc6b31bc8f0711
+jwt.accessToken.duration: 1800000
+jwt.refreshToken.duration: 604800000
+jwt.email.auth.duration: 600000
+
+image.upload.directory: src/images
