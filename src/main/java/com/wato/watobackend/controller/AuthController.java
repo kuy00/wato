@@ -85,16 +85,6 @@ public class AuthController {
         return ApiResponse.builder().data(isAuth).build();
     }
 
-    @PostMapping("/refresh")
-    public ApiResponse refreshToken(
-            HttpServletRequest request,
-            HttpServletResponse response) {
-        String token = RequestUtil.getAccessToken(request);
-
-        boolean isAuth = authenticationService.refreshToken(request, response, token);
-        return ApiResponse.builder().data(isAuth).build();
-    }
-
     @PostMapping("/logout")
     public ApiResponse logout(
             HttpServletRequest request,
@@ -104,7 +94,6 @@ public class AuthController {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
         CookieUtil.deleteCookie(request, response, ACCESS_TOKEN);
-        CookieUtil.deleteCookie(request, response, REFRESH_TOKEN);
 
         boolean logout = notificationService.deleteFcmToken(Long.parseLong(userDetails.getUsername()));
 

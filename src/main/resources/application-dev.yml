@@ -82,8 +82,7 @@ logging:
   config: classpath:logback-dev.xml
 
 jwt.secret: 71f6d2dc07f7b338c8f0e14e7f80a6fccbe54a78421287bafbcc6b31bc8f0711
-jwt.accessToken.duration: 1800000
-jwt.refreshToken.duration: 604800000
+jwt.accessToken.duration: 604800000
 jwt.email.auth.duration: 600000
 
 image.upload.directory: src/images

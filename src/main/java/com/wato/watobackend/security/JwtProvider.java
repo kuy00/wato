@@ -26,8 +26,8 @@ public class JwtProvider {
 
     private final JwtUtil jwtToken;
 
-    public TokenDto generateToken(String id, String tokenType) {
-        return jwtToken.generateToken(id, tokenType);
+    public TokenDto generateToken(Long id, String email) {
+        return jwtToken.generateToken(id, email);
     }
 
     public TokenDto generateTokenByCode(Long id, String email, Integer code) {
@@ -43,22 +43,6 @@ public class JwtProvider {
         }
 
         return userPrincipal(id);
-    }
-
-    public String getAuthenticationByRefresh(String token) {
-        Claims claims = jwtToken.getExpiredTokenClaims(token);
-        if (claims == null) throw new ApiException(Error.TOKEN_VALID_FAILED);
-        if (StringUtils.isEmpty(claims.getSubject())) {
-            throw new ApiException(Error.AUTH_FAILED);
-        }
-
-        return claims.get("id").toString();
-    }
-
-    public Claims validateTokenByRefresh(String token) {
-        Claims claims = getClaims(token);
-
-        return claims;
     }
 
     public EmailAuthDto getEmailAuthentication(String token) {

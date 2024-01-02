@@ -37,18 +37,12 @@ public class AuthenticationService {
 
     private final EmailService emailService;
     private final UserRepository userRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
 
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
 
     @Value("${jwt.accessToken.duration}")
     public Long jwtAccessTokenDuration;
-
-    @Value("${jwt.refreshToken.duration}")
-    public Long jwtRefreshTokenDuration;
-
-    private final Long THREE_DAYS_MSEC = 259200000L;
 
     public AuthCodeDto login(LoginRequest request) {
         Optional<User> optUser = userRepository.findByEmail(request.getEmail());
@@ -62,10 +56,7 @@ public class AuthenticationService {
             throw new ApiException(Error.AUTH_FAILED);
         }
 
-        Integer code = getAuthCode();
-
-        TokenDto token = jwtProvider.generateTokenByCode(optUser.get().getId(), optUser.get().getEmail(), code);
-        emailService.send(optUser.get().getEmail(), "Wato 인증코드입니다.", code);
+        TokenDto token = jwtProvider.generateToken(optUser.get().getId(), optUser.get().getEmail());
 
         return AuthCodeDto.builder().token(token.getToken()).expiration(token.getExpiration()).build();
     }
@@ -105,27 +96,10 @@ public class AuthenticationService {
 
         if (!String.valueOf(emailAuthDto.getCode()).equals(String.valueOf(requestBody.getCode()))) throw new ApiException(Error.AUTH_FAILED);
 
-        TokenDto accessTokenDto = jwtProvider.generateToken(
-                String.valueOf(optUser.get().getId()), ACCESS_TOKEN);
-        TokenDto refreshTokenDto = jwtProvider.generateToken(
-                String.valueOf(optUser.get().getId()), REFRESH_TOKEN);
-
-        RefreshToken refreshToken = refreshTokenRepository.findByUserId(optUser.get().getId());
-        if (refreshToken == null) {
-            refreshToken = RefreshToken.builder()
-                    .userId(optUser.get().getId())
-                    .build();
-        }
-
-        refreshToken.setRefreshToken(refreshTokenDto.getToken());
-        refreshToken.setExpiration(refreshTokenDto.getExpiration());
-        refreshTokenRepository.save(refreshToken);
+        TokenDto accessTokenDto = jwtProvider.generateToken(optUser.get().getId(), optUser.get().getEmail());
 
         CookieUtil.deleteCookie(httpServletRequest, httpServletResponse, ACCESS_TOKEN);
         CookieUtil.addCookie(httpServletResponse, ACCESS_TOKEN, accessTokenDto.getToken(), jwtAccessTokenDuration.intValue() / 1000);
-
-        CookieUtil.deleteCookie(httpServletRequest, httpServletResponse, REFRESH_TOKEN);
-        CookieUtil.addCookie(httpServletResponse, REFRESH_TOKEN, refreshTokenDto.getToken(), jwtRefreshTokenDuration.intValue() / 1000);
 
         optUser.get().setLastLoginTime(LocalDateTime.now());
         userRepository.save(optUser.get());
@@ -143,45 +117,5 @@ public class AuthenticationService {
         emailService.send(email, "Wato 인증코드입니다.", code);
 
         return AuthCodeDto.builder().token(token.getToken()).expiration(token.getExpiration()).build();
-    }
-
-    public boolean refreshToken(HttpServletRequest request, HttpServletResponse response, String token) {
-        Long userId = Long.parseLong(jwtProvider.getAuthenticationByRefresh(token));
-        Optional<User> optUser = userRepository.findById(userId);
-        if (optUser.isEmpty()) throw new ApiException(Error.NOT_EXIST_USER);
-
-        String cookieRefreshToken = CookieUtil.getCookie(request, REFRESH_TOKEN)
-                .map(Cookie::getValue)
-                .orElse((null));
-        if (cookieRefreshToken == null) throw new ApiException(Error.TOKEN_VALID_FAILED);
-
-        Claims refreshTokenClaims = jwtProvider.validateTokenByRefresh(cookieRefreshToken);
-
-        RefreshToken dbRefreshToken = refreshTokenRepository.findByUserIdAndRefreshToken(userId, cookieRefreshToken);
-        if (dbRefreshToken == null) throw new ApiException(Error.TOKEN_VALID_FAILED);
-        TokenDto accessTokenDto = jwtProvider.generateToken(
-                String.valueOf(optUser.get().getId()), ACCESS_TOKEN);
-
-        CookieUtil.deleteCookie(request, response, ACCESS_TOKEN);
-        CookieUtil.addCookie(response, ACCESS_TOKEN, accessTokenDto.getToken(), jwtAccessTokenDuration.intValue() / 1000);
-
-        Date now = new Date();
-        Long validationDate = refreshTokenClaims.getExpiration().getTime() - now.getTime();
-        if (validationDate <= THREE_DAYS_MSEC) {
-            TokenDto refreshTokenDto = jwtProvider.generateToken(
-                    String.valueOf(optUser.get().getId()), REFRESH_TOKEN);
-
-            dbRefreshToken.setRefreshToken(refreshTokenDto.getToken());
-            dbRefreshToken.setExpiration(refreshTokenDto.getExpiration());
-            refreshTokenRepository.save(dbRefreshToken);
-
-            CookieUtil.deleteCookie(request, response, REFRESH_TOKEN);
-            CookieUtil.addCookie(response, REFRESH_TOKEN, refreshTokenDto.getToken(), jwtRefreshTokenDuration.intValue() / 1000);
-        }
-
-        optUser.get().setLastLoginTime(LocalDateTime.now());
-        userRepository.save(optUser.get());
-
-        return true;
     }
 }

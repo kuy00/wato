@@ -39,11 +39,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     @Value("${jwt.accessToken.duration}")
     public Long jwtAccessTokenDuration;
 
-    @Value("${jwt.refreshToken.duration}")
-    public Long jwtRefreshTokenDuration;
-
     private final JwtProvider jwtProvider;
-    private final RefreshTokenRepository refreshTokenRepository;
     private final OAuth2AuthorizationRequestBasedOnCookieRepository authorizationRequestRepository;
 
     @Override
@@ -66,27 +62,11 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         String targetUrl = redirectUri.orElse(getDefaultTargetUrl());
         UserPrincipal user = (UserPrincipal) authentication.getPrincipal();
 
-        TokenDto accessTokenDto = jwtProvider.generateToken(user.getId(), ACCESS_TOKEN);
-        TokenDto refreshTokenDto = jwtProvider.generateToken(user.getId(),  REFRESH_TOKEN);
+        TokenDto accessTokenDto = jwtProvider.generateToken(user.getId(), user.getEmail());
         log.info("@@@@@@@@ AccessTokne : {}", accessTokenDto);
-        log.info("@@@@@@@@ refreshTokenDto : {}", refreshTokenDto);
-
-        RefreshToken refreshToken = refreshTokenRepository.findByUserId(Long.parseLong(user.getId()));
-        if (refreshToken == null) {
-            refreshToken = RefreshToken.builder()
-                    .userId(Long.parseLong(user.getId()))
-                    .build();
-        }
-
-        refreshToken.setRefreshToken(refreshTokenDto.getToken());
-        refreshToken.setExpiration(refreshTokenDto.getExpiration());
-        refreshTokenRepository.save(refreshToken);
 
         CookieUtil.deleteCookie(request, response, ACCESS_TOKEN);
         CookieUtil.addCookie(response, ACCESS_TOKEN, accessTokenDto.getToken(), jwtAccessTokenDuration.intValue() / 1000);
-
-        CookieUtil.deleteCookie(request, response, REFRESH_TOKEN);
-        CookieUtil.addCookie(response, REFRESH_TOKEN, refreshTokenDto.getToken(), jwtRefreshTokenDuration.intValue() / 1000);
 
         return UriComponentsBuilder.fromUriString(targetUrl).build().toUriString();
     }
@@ -95,34 +75,4 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         super.clearAuthenticationAttributes(request);
         authorizationRequestRepository.removeAuthorizationRequestCookies(request, response);
     }
-
-    private boolean hasAuthority(Collection<? extends GrantedAuthority> authorities, String authority) {
-        if (authorities == null) {
-            return false;
-        }
-
-        for (GrantedAuthority grantedAuthority : authorities) {
-            if (authority.equals(grantedAuthority.getAuthority())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-//    private boolean isAuthorizedRedirectUri(String uri) {
-//        URI clientRedirectUri = URI.create(uri);
-//
-//        return appProperties.getOauth2().getAuthorizedRedirectUris()
-//                .stream()
-//                .anyMatch(authorizedRedirectUri -> {
-//                    // Only validate host and port. Let the clients use different paths if they want to
-//                    URI authorizedURI = URI.create(authorizedRedirectUri);
-//                    if(authorizedURI.getHost().equalsIgnoreCase(clientRedirectUri.getHost())
-//                            && authorizedURI.getPort() == clientRedirectUri.getPort()) {
-//                        return true;
-//                    }
-//
-//                    return false;
-//                });
-//    }
 }
