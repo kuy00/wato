@@ -115,6 +115,20 @@ public class PostController {
         return ApiResponse.builder().data(comment).build();
     }
 
+    @PutMapping("/{postId}/comment/{commentId}")
+    public ApiResponse updateComment(
+            Authentication authentication,
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @RequestBody(required = false) CommentRequest request
+    ){
+        if (request == null) throw new ApiException(Error.EMPTY_DATA);
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        Comment comment = commentService.updateComment(Long.parseLong(userDetails.getUsername()), postId, commentId, request);
+
+        return ApiResponse.builder().data(comment).build();
+    }
+
     @DeleteMapping("/{postId}/comment")
     public ApiResponse deleteComment(
             Authentication authentication,

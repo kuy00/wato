@@ -9,6 +9,7 @@ import com.wato.watobackend.model.Post;
 import com.wato.watobackend.model.User;
 import com.wato.watobackend.model.constant.NotificationType;
 import com.wato.watobackend.repository.CommentRepository;
+import com.wato.watobackend.request.CommentRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -51,6 +52,16 @@ public class CommentService {
 //        if (user.getId() != post.getUser().getId()) {
 //            notificationService.sendNotification(user, post.getUser(), NotificationType.COMMENT, postId);
 //        }
+
+        return commentRepository.save(comment);
+    }
+
+    public Comment updateComment(Long userId, Long postId, Long commentId, CommentRequest request) {
+        User user = userService.getUser(userId);
+        Comment comment = getComment(postId, commentId);
+        if (comment.getUser() != user) throw new ApiException(Error.NOT_COMMENT_OWNER);
+
+        comment.setContent(request.getContent());
 
         return commentRepository.save(comment);
     }
